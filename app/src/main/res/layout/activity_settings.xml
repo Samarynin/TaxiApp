@@ -1,0 +1,104 @@
+<?xml version="1.0" encoding="utf-8"?>
+<RelativeLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
+    xmlns:tools="http://schemas.android.com/tools"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    tools:context=".SettingsActivity">
+
+    <com.google.android.material.appbar.AppBarLayout
+        android:id="@+id/app_bar_settings"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content">
+
+        <androidx.appcompat.widget.Toolbar
+            android:id="@+id/toolbar_setings"
+            android:background="@color/colorPrimary"
+            android:layout_width="match_parent"
+            android:layout_height="50dp">
+
+            <RelativeLayout
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                >
+
+                <ImageView
+                    android:id="@+id/close_button"
+                    android:layout_width="35dp"
+                    android:layout_height="45dp"
+                    android:src="@drawable/close"
+                    android:tint="@android:color/white"
+                    />
+
+                <ImageView
+                    android:id="@+id/save_button"
+                    android:layout_width="35dp"
+                    android:layout_height="45dp"
+                    android:src="@drawable/save_edited_info"
+                    android:tint="@android:color/white"
+                    android:layout_alignParentEnd="true"
+                    android:layout_marginRight="15dp"
+                    />
+
+            </RelativeLayout>
+
+        </androidx.appcompat.widget.Toolbar>
+
+    </com.google.android.material.appbar.AppBarLayout>
+
+    <de.hdodenhof.circleimageview.CircleImageView
+        android:id="@+id/profile_image"
+        android:layout_width="200dp"
+        android:layout_height="200dp"
+        android:src="@drawable/profile"
+        app:civ_border_width="4dp"
+        app:civ_border_color="#6200EE"
+        android:layout_below="@+id/app_bar_settings"
+        android:layout_marginTop="20dp"
+        android:layout_centerHorizontal="true"
+        />
+
+    <TextView
+        android:id="@+id/change_photo_btn"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:text="Сменить фото"
+        android:layout_below="@id/profile_image"
+        android:layout_centerHorizontal="true"
+        android:layout_marginTop="10dp"
+        android:textSize="16dp"
+        android:textStyle="bold"
+        />
+
+    <EditText
+        android:id="@+id/name"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:hint="Имя"
+        android:textColor="@android:color/black"
+        android:layout_below="@+id/change_photo_btn"
+        android:layout_margin="15dp"
+        />
+
+    <EditText
+        android:id="@+id/phone"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:hint="Номер телефона"
+        android:textColor="@android:color/black"
+        android:layout_below="@+id/name"
+        android:layout_margin="15dp"
+        />
+
+    <EditText
+        android:id="@+id/car_name"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:hint="Марка автомобиля"
+        android:textColor="@android:color/black"
+        android:layout_below="@+id/phone"
+        android:layout_margin="15dp"
+        android:visibility="invisible"
+        />
+
+</RelativeLayout>

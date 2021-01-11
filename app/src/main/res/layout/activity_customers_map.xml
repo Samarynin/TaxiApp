@@ -1,0 +1,110 @@
+<?xml version="1.0" encoding="utf-8"?>
+<RelativeLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:tools="http://schemas.android.com/tools"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    android:background="@color/colorPrimaryDark"
+    tools:context=".CustomersMapActivity">
+
+    <fragment
+        android:id="@+id/map"
+        android:name="com.google.android.gms.maps.SupportMapFragment"
+        android:layout_marginTop="50dp"
+        android:layout_width="match_parent"
+        android:layout_height="match_parent" />
+
+    <RelativeLayout
+        android:id="@+id/rel1"
+        android:background="@color/colorPrimaryDark"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:layout_margin="10dp"
+        android:layout_above="@+id/cuslomer_order_button">
+
+        <de.hdodenhof.circleimageview.CircleImageView
+            android:id="@+id/driver_photo"
+            android:layout_width="100dp"
+            android:layout_height="100dp"
+            android:layout_margin="5dp"
+            android:layout_below="@+id/app_bar_settings"
+            android:src="@drawable/profile" />
+
+        <TextView
+            android:id="@+id/driver_name"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_toEndOf="@+id/driver_photo"
+            android:text="Имя водителя"
+            android:textColor="@android:color/white"
+            android:layout_marginTop="10dp"
+            android:layout_marginLeft="15dp"
+            android:textSize="16sp"
+            />
+
+        <TextView
+            android:id="@+id/driver_phone_number"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_toEndOf="@+id/driver_photo"
+            android:text="Номер телефона"
+            android:layout_below="@+id/driver_name"
+            android:textColor="@android:color/white"
+            android:layout_marginTop="10dp"
+            android:layout_marginLeft="15dp"
+            android:textSize="16sp"
+            />
+
+        <TextView
+            android:id="@+id/driver_car"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_toEndOf="@+id/driver_photo"
+            android:text="Марка автомобиля"
+            android:layout_below="@+id/driver_phone_number"
+            android:textColor="@android:color/white"
+            android:layout_marginTop="10dp"
+            android:layout_marginLeft="15dp"
+            android:textSize="16sp"
+            />
+
+        <ImageView
+            android:layout_width="50dp"
+            android:layout_height="50dp"
+            android:layout_alignParentEnd="true"
+            android:src="@drawable/phone"
+            android:layout_centerVertical="true"
+            android:layout_marginRight="10dp"
+            android:tint="@android:color/white"
+            />
+
+    </RelativeLayout>
+
+    <Button
+        android:id="@+id/cuslomer_settings_button"
+        android:layout_width="180dp"
+        android:layout_height="50dp"
+        android:text="Настройки"
+        android:background="@color/colorPrimaryDark"
+        android:textColor="@android:color/white"
+        android:layout_alignParentStart="true"/>
+
+    <Button
+        android:id="@+id/cuslomer_logout_button"
+        android:layout_width="180dp"
+        android:layout_height="50dp"
+        android:text="Выйти"
+        android:background="@color/colorPrimaryDark"
+        android:textColor="@android:color/white"
+        android:layout_alignParentEnd="true"/>
+
+    <Button
+        android:id="@+id/cuslomer_order_button"
+        android:layout_width="match_parent"
+        android:layout_height="50dp"
+        android:text="Вызвать такси"
+        android:background="@color/colorPrimaryDark"
+        android:textColor="@android:color/white"
+        android:layout_alignParentBottom="true"/>
+
+</RelativeLayout>
+
