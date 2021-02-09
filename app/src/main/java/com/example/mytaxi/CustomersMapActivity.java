@@ -3,6 +3,7 @@ package com.example.mytaxi;
 import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
 import androidx.core.app.ActivityCompat;
+import androidx.core.content.ContextCompat;
 import androidx.fragment.app.FragmentActivity;
 
 import android.Manifest;
@@ -10,9 +11,11 @@ import android.content.Intent;
 import android.content.pm.PackageManager;
 import android.location.Geocoder;
 import android.location.Location;
+import android.net.Uri;
 import android.os.Bundle;
 import android.view.View;
 import android.widget.Button;
+import android.widget.ImageView;
 import android.widget.RelativeLayout;
 import android.widget.TextView;
 
@@ -61,13 +64,13 @@ public class CustomersMapActivity extends FragmentActivity implements OnMapReady
         Marker driverMarker, PickUpMarker;
         GeoQuery geoQuery;
 
+
         private Button customerLogoutButton, settingsButton;
         private Button callTaxiButton;
-        private String customerID;
+        private String customerID, driverFoundID;
         private LatLng CustomerPosition;
         private int radius = 1;
         private Boolean driverFound = false, requestType= false;
-        private String driverFoundID;
 
         private FirebaseAuth mAuth;
         private FirebaseUser currentUser;
@@ -77,7 +80,7 @@ public class CustomersMapActivity extends FragmentActivity implements OnMapReady
         private DatabaseReference DriversLocationRef;
 
         private ValueEventListener DriverLocationRefListener;
-
+        private ImageView callDriver;
         private TextView txtName, txtPhone, txtCarName;
         private CircleImageView driverPhoto;
         private RelativeLayout relativeLayout;
@@ -90,6 +93,7 @@ public class CustomersMapActivity extends FragmentActivity implements OnMapReady
         customerLogoutButton = (Button) findViewById(R.id.cuslomer_logout_button);
         settingsButton = (Button)findViewById(R.id.cuslomer_settings_button);
         callTaxiButton = (Button)findViewById(R.id.cuslomer_order_button);
+        callDriver = findViewById(R.id.call_to_driver);
 
         mAuth = FirebaseAuth.getInstance();
         currentUser = mAuth.getCurrentUser();
@@ -134,7 +138,7 @@ public class CustomersMapActivity extends FragmentActivity implements OnMapReady
                 if (requestType)
                 {
                     requestType = false;
-                    geoQuery.removeAllListeners();
+//                    geoQuery.removeAllListeners();
                     DriversLocationRef.removeEventListener(DriverLocationRefListener);
 
                     if (driverFound!=null)
@@ -262,14 +266,117 @@ public class CustomersMapActivity extends FragmentActivity implements OnMapReady
                     if(!driverFound && requestType)
                     {
                         driverFound = true;
-                        driverFoundID = key;
+                        final String driverFoundID = key;
 
                         DriversRef = FirebaseDatabase.getInstance().getReference().child("Users").child("Drivers").child(driverFoundID);
                         HashMap driverMap = new HashMap();
                         driverMap.put("CustomerRideID", customerID);
                         DriversRef.updateChildren(driverMap);
 
-                        GetDriverLocation();
+                        DriverLocationRefListener = DriversLocationRef.child(driverFoundID).child("l").
+                                addValueEventListener(new ValueEventListener() {
+                                    @Override
+                                    public void onDataChange(@NonNull DataSnapshot dataSnapshot) {
+                                        if(dataSnapshot.exists() && requestType)
+                                        {
+                                            List<Object> driverLocationMap = (List<Object>) dataSnapshot.getValue();
+                                            double locationLat = 0;
+                                            double locationLng = 0;
+
+                                            callTaxiButton.setText("Водитель найден");
+
+                                            relativeLayout.setVisibility(View.VISIBLE);
+                                            DatabaseReference reference = FirebaseDatabase.getInstance().getReference()
+                                                    .child("Users").child("Drivers").child(driverFoundID);
+
+                                            reference.addValueEventListener(new ValueEventListener() {
+                                                @Override
+                                                public void onDataChange(@NonNull DataSnapshot dataSnapshot) {
+                                                    if(dataSnapshot.exists() && dataSnapshot.getChildrenCount()>0)
+                                                    {
+                                                        String name = dataSnapshot.child("name").getValue().toString();
+                                                        final String phone  = dataSnapshot.child("phone").getValue().toString();
+                                                        String carname = dataSnapshot.child("carname").getValue().toString();
+
+
+
+                                                        txtName.setText(name);
+                                                        txtPhone.setText(phone);
+                                                        txtCarName.setText(carname);
+
+                                                        callDriver.setOnClickListener(new View.OnClickListener() {
+                                                            @Override
+                                                            public void onClick(View view) {
+                                                                int permissionCheck = ContextCompat.checkSelfPermission(CustomersMapActivity.this, Manifest.permission.CALL_PHONE);
+
+                                                                if(permissionCheck != PackageManager.PERMISSION_GRANTED){
+                                                                    ActivityCompat.requestPermissions(
+                                                                            CustomersMapActivity.this, new String[]{Manifest.permission.CALL_PHONE}, 123
+                                                                    );
+                                                                }
+                                                                else{
+                                                                    Intent intent = new Intent(Intent.ACTION_CALL, Uri.parse("tel: " + phone));
+                                                                    startActivity(intent);
+                                                                }
+                                                            }
+                                                        });
+
+                                                        if (dataSnapshot.hasChild("image")) {
+                                                            String image = dataSnapshot.child("image").getValue().toString();
+                                                            Picasso.get().load(image).into(driverPhoto);
+                                                        }
+                                                    }
+                                                }
+
+                                                @Override
+                                                public void onCancelled(@NonNull DatabaseError databaseError) {
+
+                                                }
+                                            });
+
+                                            if (driverLocationMap.get(0) != null)
+                                            {
+                                                locationLat = Double.parseDouble(driverLocationMap.get(0).toString());
+                                            }
+                                            if (driverLocationMap.get(1) != null)
+                                            {
+                                                locationLng = Double.parseDouble(driverLocationMap.get(1).toString());
+                                            }
+                                            LatLng DriverLatLng = new LatLng(locationLat, locationLng);
+
+                                            if(driverMarker !=null)
+                                            {
+                                                driverMarker.remove();
+                                            }
+
+                                            Location location1 = new Location("");
+                                            location1.setLatitude(CustomerPosition.latitude);
+                                            location1.setLongitude(CustomerPosition.longitude);
+
+                                            Location location2 = new Location("");
+                                            location2.setLatitude(DriverLatLng.latitude);
+                                            location2.setLongitude(DriverLatLng.longitude);
+
+                                            float Distance = location1.distanceTo(location2);
+                                            if(Distance>100)
+                                            {
+                                                callTaxiButton.setText("Ваше такси подъезжает");
+                                            }
+                                            else {
+                                                callTaxiButton.setText("Расстояние до такси" + String.valueOf(Distance));
+                                            }
+
+                                            driverMarker = mMap.addMarker(new MarkerOptions().position(DriverLatLng)
+                                                    .title("Ваше такси тут").icon(BitmapDescriptorFactory.fromResource(R.drawable.car)));
+                                        }
+
+                                    }
+
+                                    @Override
+                                    public void onCancelled(@NonNull DatabaseError databaseError) {
+
+                                    }
+                                });
                     }
                 }
 
@@ -299,96 +406,4 @@ public class CustomersMapActivity extends FragmentActivity implements OnMapReady
             });
         }
 
-        private void GetDriverLocation() {
-            DriverLocationRefListener = DriversLocationRef.child(driverFoundID).child("l").
-                    addValueEventListener(new ValueEventListener() {
-                        @Override
-                        public void onDataChange(@NonNull DataSnapshot dataSnapshot) {
-                            if(dataSnapshot.exists() && requestType)
-                            {
-                                List<Object> driverLocationMap = (List<Object>) dataSnapshot.getValue();
-                                double locationLat = 0;
-                                double locationLng = 0;
-
-                                callTaxiButton.setText("Водитель найден");
-                                getDriverInformation();
-                                relativeLayout.setVisibility(View.VISIBLE);
-
-                                if (driverLocationMap.get(0) != null)
-                                {
-                                    locationLat = Double.parseDouble(driverLocationMap.get(0).toString());
-                                }
-                                if (driverLocationMap.get(1) != null)
-                                {
-                                    locationLng = Double.parseDouble(driverLocationMap.get(1).toString());
-                                }
-                                LatLng DriverLatLng = new LatLng(locationLat, locationLng);
-
-                                if(driverMarker !=null)
-                                {
-                                    driverMarker.remove();
-                                }
-
-                                Location location1 = new Location("");
-                                location1.setLatitude(CustomerPosition.latitude);
-                                location1.setLongitude(CustomerPosition.longitude);
-
-                                Location location2 = new Location("");
-                                location2.setLatitude(DriverLatLng.latitude);
-                                location2.setLongitude(DriverLatLng.longitude);
-
-                                float Distance = location1.distanceTo(location2);
-                                if(Distance>100)
-                                {
-                                    callTaxiButton.setText("Ваше такси подъезжает");
-                                }
-                                else {
-                                    callTaxiButton.setText("Расстояние до такси" + String.valueOf(Distance));
-                                }
-
-                                driverMarker = mMap.addMarker(new MarkerOptions().position(DriverLatLng)
-                                        .title("Ваше такси тут").icon(BitmapDescriptorFactory.fromResource(R.drawable.car)));
-                            }
-
-                        }
-
-                        @Override
-                        public void onCancelled(@NonNull DatabaseError databaseError) {
-
-                        }
-                    });
-        }
-    private void getDriverInformation()
-    {
-        DatabaseReference reference = FirebaseDatabase.getInstance().getReference()
-                .child("Users").child("Drivers").child(driverFoundID);
-
-        reference.addValueEventListener(new ValueEventListener() {
-            @Override
-            public void onDataChange(@NonNull DataSnapshot dataSnapshot) {
-                if(dataSnapshot.exists() && dataSnapshot.getChildrenCount()>0)
-                {
-                    String name = dataSnapshot.child("name").getValue().toString();
-                    String phone  = dataSnapshot.child("phone").getValue().toString();
-                    String carname = dataSnapshot.child("carname").getValue().toString();
-
-
-
-                    txtName.setText(name);
-                    txtPhone.setText(phone);
-                    txtCarName.setText(carname);
-
-                    if (dataSnapshot.hasChild("image")) {
-                        String image = dataSnapshot.child("image").getValue().toString();
-                        Picasso.get().load(image).into(driverPhoto);
-                    }
-                }
-            }
-
-            @Override
-            public void onCancelled(@NonNull DatabaseError databaseError) {
-
-            }
-        });
-    }
 }

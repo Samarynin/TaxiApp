@@ -68,6 +68,7 @@
             />
 
         <ImageView
+            android:id="@+id/call_to_driver"
             android:layout_width="50dp"
             android:layout_height="50dp"
             android:layout_alignParentEnd="true"
