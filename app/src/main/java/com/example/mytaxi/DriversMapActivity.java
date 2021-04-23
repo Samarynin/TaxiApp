@@ -3,15 +3,21 @@ package com.example.mytaxi;
 import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
 import androidx.core.app.ActivityCompat;
+import androidx.core.content.ContextCompat;
 import androidx.fragment.app.FragmentActivity;
 
 import android.Manifest;
 import android.content.Intent;
 import android.content.pm.PackageManager;
 import android.location.Location;
+import android.media.MediaPlayer;
+import android.net.Uri;
 import android.os.Bundle;
 import android.view.View;
 import android.widget.Button;
+import android.widget.ImageView;
+import android.widget.RelativeLayout;
+import android.widget.TextView;
 
 import com.firebase.geofire.GeoFire;
 import com.firebase.geofire.GeoLocation;
@@ -36,8 +42,11 @@ import com.google.firebase.database.DatabaseError;
 import com.google.firebase.database.DatabaseReference;
 import com.google.firebase.database.FirebaseDatabase;
 import com.google.firebase.database.ValueEventListener;
+import com.squareup.picasso.Picasso;
 
 import java.util.List;
+
+import de.hdodenhof.circleimageview.CircleImageView;
 
 public class DriversMapActivity extends FragmentActivity implements OnMapReadyCallback,
         GoogleApiClient.ConnectionCallbacks,
@@ -49,6 +58,7 @@ public class DriversMapActivity extends FragmentActivity implements OnMapReadyCa
     Location lastLocation;
     LocationRequest locationRequest;
     Marker PickUpMarker;
+    private MediaPlayer sound;
 
     private Button LogoutDriverButton, SettingsDriverButton;
     private FirebaseAuth mAuth;
@@ -56,6 +66,11 @@ public class DriversMapActivity extends FragmentActivity implements OnMapReadyCa
     private Boolean currentLogoutDriverStatus = false;
     private DatabaseReference assignedCustomerRef, AssignedCustomerPositionRef;
     private String driverID, customerID="";
+
+    private ImageView callCustomer;
+    private TextView txtName, txtPhone;
+    private CircleImageView customerPhoto;
+    private RelativeLayout relativeLayout;
 
     private ValueEventListener AssignedCustomerPositionListener;
 
@@ -68,6 +83,14 @@ public class DriversMapActivity extends FragmentActivity implements OnMapReadyCa
         currentUser = mAuth.getCurrentUser();
         driverID = mAuth.getCurrentUser().getUid();
 
+        sound = MediaPlayer.create(DriversMapActivity.this, R.raw.sound);
+        txtName = (TextView)findViewById(R.id.customer_name);
+        txtPhone = (TextView)findViewById(R.id.customer_phone_number);
+        customerPhoto = (CircleImageView)findViewById(R.id.customer_photo);
+        callCustomer = (ImageView) findViewById(R.id.call_to_customer);
+
+        relativeLayout = findViewById(R.id.rel2);
+        relativeLayout.setVisibility(View.GONE);
         LogoutDriverButton = (Button)findViewById(R.id.driver_logout_button);
         SettingsDriverButton = (Button)findViewById(R.id.driver_settings_button);
 
@@ -110,6 +133,9 @@ public class DriversMapActivity extends FragmentActivity implements OnMapReadyCa
                     customerID = dataSnapshot.getValue().toString();
 
                     getAssignedCustomerPosition();
+                    sound.start();
+
+                    getAssignedCustomerInformation();
                 }
                 else {
                     customerID = "";
@@ -133,8 +159,57 @@ public class DriversMapActivity extends FragmentActivity implements OnMapReadyCa
         });
     }
 
+    private void getAssignedCustomerInformation() {
+        relativeLayout.setVisibility(View.VISIBLE);
+        DatabaseReference reference = FirebaseDatabase.getInstance().getReference()
+                .child("Users").child("Customers").child(customerID);
+
+        reference.addValueEventListener(new ValueEventListener() {
+            @Override
+            public void onDataChange(@NonNull DataSnapshot dataSnapshot) {
+                if(dataSnapshot.exists() && dataSnapshot.getChildrenCount()>0)
+                {
+                    String name = dataSnapshot.child("name").getValue().toString();
+                    final String phone  = dataSnapshot.child("phone").getValue().toString();
+
+
+
+                    txtName.setText(name);
+                    txtPhone.setText(phone);
+
+                    callCustomer.setOnClickListener(new View.OnClickListener() {
+                        @Override
+                        public void onClick(View view) {
+                            int permissionCheck = ContextCompat.checkSelfPermission(DriversMapActivity.this, Manifest.permission.CALL_PHONE);
+
+                            if(permissionCheck != PackageManager.PERMISSION_GRANTED){
+                                ActivityCompat.requestPermissions(
+                                        DriversMapActivity.this, new String[]{Manifest.permission.CALL_PHONE}, 123
+                                );
+                            }
+                            else{
+                                Intent intent = new Intent(Intent.ACTION_CALL, Uri.parse("tel: " + phone));
+                                startActivity(intent);
+                            }
+                        }
+                    });
+
+                    if (dataSnapshot.hasChild("image")) {
+                        String image = dataSnapshot.child("image").getValue().toString();
+                        Picasso.get().load(image).into(customerPhoto);
+                    }
+                }
+            }
+
+            @Override
+            public void onCancelled(@NonNull DatabaseError databaseError) {
+
+            }
+        });
+    }
+
     private void getAssignedCustomerPosition() {
-        AssignedCustomerPositionRef = FirebaseDatabase.getInstance().getReference().child("Customer Requests")
+        AssignedCustomerPositionRef = FirebaseDatabase.getInstance().getReference().child("Customers Requests")
                 .child(customerID).child("l");
 
         AssignedCustomerPositionListener = AssignedCustomerPositionRef.addValueEventListener(new ValueEventListener() {
@@ -143,21 +218,13 @@ public class DriversMapActivity extends FragmentActivity implements OnMapReadyCa
                 if(dataSnapshot.exists())
                 {
                     List<Object> customerPositionMap = (List<Object>) dataSnapshot.getValue();
-                    double locationLat = 0;
-                    double locationLng = 0;
+                    double locationLat = Double.parseDouble(customerPositionMap.get(0).toString());
+                    double locationLng = Double.parseDouble(customerPositionMap.get(1).toString());
 
-
-                    if (customerPositionMap.get(0) != null)
-                    {
-                        locationLat = Double.parseDouble(customerPositionMap.get(0).toString());
-                    }
-                    if (customerPositionMap.get(1) != null)
-                    {
-                        locationLng = Double.parseDouble(customerPositionMap.get(1).toString());
-                    }
                     LatLng DriverLatLng = new LatLng(locationLat, locationLng);
                     PickUpMarker = mMap.addMarker(new MarkerOptions().position(DriverLatLng).title("Забрать клиента тут").icon(BitmapDescriptorFactory.fromResource(R.drawable.user)));
-
+                    mMap.moveCamera(CameraUpdateFactory.newLatLng(DriverLatLng));
+                    mMap.animateCamera(CameraUpdateFactory.zoomTo(11));
                 }
             }
 
@@ -184,8 +251,8 @@ public class DriversMapActivity extends FragmentActivity implements OnMapReadyCa
     @Override
     public void onConnected(@Nullable Bundle bundle) {
         locationRequest = new LocationRequest();
-        locationRequest.setInterval(1000);
-        locationRequest.setFastestInterval(1000);
+        locationRequest.setInterval(100000);
+        locationRequest.setFastestInterval(100000);
         locationRequest.setPriority(locationRequest.PRIORITY_HIGH_ACCURACY);
 
         if (ActivityCompat.checkSelfPermission(this, Manifest.permission.ACCESS_FINE_LOCATION) != PackageManager.PERMISSION_GRANTED && ActivityCompat.checkSelfPermission(this, Manifest.permission.ACCESS_COARSE_LOCATION) != PackageManager.PERMISSION_GRANTED) {
